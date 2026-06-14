@@ -1,0 +1,13 @@
+{
+  "name": "sistema-reservas-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Testes E2E didaticos com Playwright para o Sistema de Reservas",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.1"
+  }
+}

@@ -1,0 +1,32 @@
+# Maven / Java build output
+/target/
+**/target/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE - VS Code
+.vscode/
+
+# IntelliJ / Eclipse
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+
+# Node (E2E Playwright)
+**/node_modules/
+
+# Playwright artifacts
+playwright-report/
+test-results/
+
+# Environment files
+.env
+.env.*

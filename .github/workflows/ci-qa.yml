@@ -1,0 +1,125 @@
+name: CI-QA
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-test-quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Baixa o codigo do repositorio para o runner.
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      # Configura Java 17 com cache de dependencias do Maven.
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      # Executa compilacao e testes unitarios/integracao/repositorio.
+      - name: Build and Test
+        run: mvn -B clean test
+
+      # Publica relatorios de testes para analise do time.
+      - name: Upload Surefire Reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: surefire-reports
+          path: target/surefire-reports
+
+      # Publica relatorio de cobertura gerado pelo JaCoCo.
+      - name: Upload JaCoCo Report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: jacoco-report
+          path: target/site/jacoco
+
+      # Gate basico de qualidade do backend.
+      - name: Quality Gate Placeholder
+        run: 'echo "Quality gate basico executado: build + testes + cobertura publicados"'
+
+  e2e-playwright:
+    runs-on: ubuntu-latest
+    needs: build-test-quality
+
+    steps:
+      # Baixa o codigo para executar os testes E2E.
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      # Configura Java para gerar e iniciar a aplicacao no CI.
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      # Configura Node para rodar Playwright.
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Gera o jar sem reexecutar os testes Java desta fase.
+      - name: Package Application
+        run: mvn -B -DskipTests package
+
+      # Instala dependencias do projeto E2E.
+      - name: Install E2E Dependencies
+        working-directory: e2e/playwright
+        run: npm install
+
+      # Instala navegadores e dependencias de sistema do Playwright.
+      - name: Install Playwright Browsers
+        working-directory: e2e/playwright
+        run: npx playwright install --with-deps
+
+      # Sobe a aplicacao com perfil CI e salva log para troubleshooting.
+      - name: Start Application (CI Profile)
+        run: |
+          nohup java -jar target/*.jar --spring.profiles.active=ci > app.log 2>&1 &
+
+      # Aguarda a aplicacao ficar pronta antes de iniciar os testes E2E.
+      - name: Wait for Application
+        shell: bash
+        run: |
+          for i in {1..60}; do
+            if curl -fsS http://localhost:8080/reservas > /dev/null; then
+              echo "Aplicacao pronta para E2E"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Aplicacao nao respondeu a tempo"
+          exit 1
+
+      # Executa o fluxo E2E critico.
+      - name: Run E2E Tests
+        working-directory: e2e/playwright
+        run: npm run test:e2e
+
+      # Publica o relatorio HTML do Playwright.
+      - name: Upload Playwright Report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: e2e/playwright/playwright-report
+
+      # Publica log da aplicacao para facilitar analise de falhas.
+      - name: Upload Application Log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-log
+          path: app.log

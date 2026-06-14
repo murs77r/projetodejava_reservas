@@ -2,6 +2,8 @@
 
 Projeto simples em Spring Boot + Thymeleaf + MySQL.
 
+Grupo formado por Murilo Souza, João Paulo Nunes e Victor de Castro.
+
 ## Executar localmente (com Docker)
 
 ```bash

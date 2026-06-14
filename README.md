@@ -20,7 +20,7 @@ Acesse: http://localhost:8080
 mvn clean test
 ```
 
-### Relatorio de cobertura JaCoCo
+### Relatório de cobertura JaCoCo
 
 Gerado em:
 
@@ -30,7 +30,7 @@ target/site/jacoco/index.html
 
 ### Testes E2E com Playwright
 
-Com a aplicacao rodando em `http://localhost:8080`:
+Com a aplicação rodando em `http://localhost:8080`:
 
 ```bash
 cd e2e/playwright
@@ -41,13 +41,13 @@ npm run test:e2e
 
 ### CI/CD de qualidade
 
-O pipeline de CI esta em:
+O pipeline de CI está em:
 
 ```text
 .github/workflows/ci-qa.yml
 ```
 
-Ele executa build, testes e publica artefatos de relatorios.
+Ele executa build, testes e publica artefatos de relatórios.
 
 ## Parar os containers
 

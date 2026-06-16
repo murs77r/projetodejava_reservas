@@ -29,11 +29,46 @@ diretamente na tela de listagem das reservas. A partir dali, ele tem quatro aç�
 já cadastrada e pode **excluir** o que não for mais necessário. Na prática, isso cobre o ciclo
 completo daquilo que chamamos de CRUD — criar, ler, atualizar e remover.
 
-[neste momento, posso mostrar a tela de listagem e, em seguida, o formulário de cadastro]
+E aqui eu queria, antes de entrar na teoria, fazer uma **demonstração ao vivo**, passo a passo, para
+que vocês vejam o sistema funcionando de verdade. Vou conduzir a navegação pela própria tela.
 
-Então, resumindo as principais funcionalidades: listagem de reservas, cadastro de novas reservas,
-edição de reservas existentes e exclusão. Tudo isso com uma interface limpa, feita com Thymeleaf e
-estilizada com Bootstrap, para que a navegação seja agradável e fácil de entender.
+[neste momento, abrir o navegador em `http://localhost:8080`]
+
+**Passo 1 — A tela inicial.** Repare que, assim que eu acesso a aplicação, ela me leva direto para a
+**lista de reservas**. Eu não preciso navegar por menu nenhum: o sistema entende que a primeira coisa
+que o usuário quer é ver o que já está cadastrado. Essa é a tela central de tudo. No topo dela, à
+direita, existe um botão azul escrito **"Nova Reserva"**, e logo abaixo temos uma tabela com as
+colunas ID, Cliente, Data, Quantidade de Pessoas, Status e Ações. Se ainda não houver nenhuma reserva,
+a própria tabela mostra a mensagem "Nenhuma reserva cadastrada", para não deixar a tela vazia sem
+explicação.
+
+**Passo 2 — Cadastrar uma nova reserva.** Agora eu vou clicar no botão "Nova Reserva". [clicar no
+botão] Veja que o sistema me leva para um **formulário** com quatro campos: o nome do cliente, a data
+da reserva, a quantidade de pessoas e o status. Eu vou preencher como exemplo: no nome, coloco
+"Maria"; na data, escolho uma data no calendário; na quantidade, digito "4"; e no status, eu abro a
+lista e seleciono "Confirmada". Reparem que alguns campos têm validação: a quantidade de pessoas, por
+exemplo, não aceita um valor menor que 1.
+
+**Passo 3 — Salvar e ver o resultado.** Vou clicar em **"Salvar"**. [clicar em Salvar] Olhem o que
+aconteceu: o sistema gravou a reserva e me trouxe **de volta para a lista**, e agora a reserva da
+"Maria" aparece na tabela, já com um ID gerado automaticamente. Esse ID não fui eu que digitei — foi
+o próprio sistema que atribuiu, e isso vai ser importante quando eu explicar a parte do código.
+
+**Passo 4 — Editar uma reserva existente.** Na linha da reserva, do lado direito, existe um botão
+amarelo **"Editar"**. Vou clicar nele. [clicar em Editar] Repare que o sistema reabriu o **mesmo
+formulário**, mas desta vez **já preenchido** com os dados da "Maria". Eu vou, por exemplo, mudar o
+status de "Confirmada" para "Pendente" e salvar de novo. [salvar] E, de volta na lista, o status já
+aparece atualizado. Aqui vale destacar uma decisão de projeto interessante: o mesmo formulário serve
+tanto para criar quanto para editar.
+
+**Passo 5 — Excluir uma reserva.** Por fim, ainda na linha da reserva, existe um botão vermelho
+**"Excluir"**. Quando eu clico nele [clicar em Excluir], o sistema me pede uma **confirmação** antes
+de apagar, justamente para evitar exclusões por engano. Se eu confirmar, a reserva some da lista.
+
+Com esses cinco passos, vocês acabaram de ver o ciclo completo do sistema funcionando: criar, listar,
+editar e excluir. Então, resumindo as principais funcionalidades: listagem de reservas, cadastro de
+novas reservas, edição de reservas existentes e exclusão. Tudo isso com uma interface limpa, feita com
+Thymeleaf e estilizada com Bootstrap, para que a navegação seja agradável e fácil de entender.
 
 Em termos de visão geral da aplicação, nós construímos tudo em **Java com Spring Boot**, usando
 **Thymeleaf** para renderizar as telas no servidor e **MySQL** como banco de dados para guardar as
@@ -46,14 +81,28 @@ parte de Testes e Qualidade, mostrando como nós garantimos que o sistema funcio
 
 ## Parte 2 — Linguagem de Programação Orientada a Objetos II
 
-Agora eu queria abrir o sistema por dentro e mostrar como ele está estruturado, porque é aqui que
-ficam os conceitos de Java e de orientação a objetos que aprendemos na disciplina.
+Agora eu queria abrir o sistema por dentro e mostrar, **código a código**, como ele está estruturado,
+porque é aqui que ficam os conceitos de Java e de orientação a objetos que aprendemos na disciplina.
+Eu vou trazer os trechos relevantes para a tela e ir comentando cada um deles.
 
 O ponto de partida da aplicação é a classe `SistemaReservasApplication`. Ela é bem pequena, mas é
-estratégica: é nela que está o método `main`, e é ela que carrega a anotação `@SpringBootApplication`.
-Na prática, essa anotação é o que liga o motor do Spring Boot — ela ativa a configuração automática,
-a varredura de componentes e levanta todo o servidor embutido. Ou seja, com pouquíssimo código a
-gente sobe a aplicação inteira. [aqui, posso apontar o trecho correspondente no `trecho.md`]
+estratégica. Vou mostrar o código dela na tela:
+
+```java
+@SpringBootApplication
+public class SistemaReservasApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(SistemaReservasApplication.class, args);
+    }
+}
+```
+
+Reparem em duas coisas. A primeira é o método `main`, que é o ponto de entrada de qualquer programa
+Java. A segunda, e mais importante, é a anotação `@SpringBootApplication`, ali em cima da classe. Na
+prática, essa anotação é o que liga o motor do Spring Boot — ela ativa a configuração automática, a
+varredura de componentes e levanta todo o servidor embutido. Ou seja, com pouquíssimo código a gente
+sobe a aplicação inteira.
 
 A primeira coisa que eu gostaria de destacar é que o sistema foi organizado em **camadas bem
 separadas**, seguindo o que se costuma chamar de arquitetura em camadas. Nós temos quatro papéis
@@ -64,72 +113,222 @@ que cada classe deve ter um motivo claro para existir. Essa separação deixa o 
 entender, de manter e de testar.
 
 Deixa eu começar pela base de tudo, que é a entidade `Reserva`. Essa é a classe que representa, em
-objeto Java, aquilo que no banco de dados é uma linha de uma tabela. É aqui que aparece com força o
-conceito de **encapsulamento**: todos os atributos — o `id`, o `nomeCliente`, a `dataReserva`, a
-`quantidadePessoas` e o `status` — são declarados como `private`. Isso significa que ninguém de fora
-acessa esses dados diretamente. O acesso só acontece através dos métodos `get` e `set`, os getters e
-setters, que são a porta de entrada e de saída controlada para cada atributo. Esse é exatamente o
-princípio do encapsulamento que estudamos: proteger o estado interno do objeto e expor apenas o que
-for necessário.
+objeto Java, aquilo que no banco de dados é uma linha de uma tabela. Vou mostrar o cabeçalho da classe
+e os atributos:
 
-Sobre a **tipagem**, vale reparar que cada atributo tem um tipo bem escolhido. O `id` é um `Long`, a
-data é um `LocalDate`, que é a classe moderna do Java para representar datas sem hora, a quantidade
-de pessoas é um `int`, que é um tipo primitivo, e tanto o nome quanto o status são `String`. Esse
-cuidado com os tipos é importante porque é o que garante que o dado certo seja armazenado da forma
-certa, e o compilador nos ajuda a evitar erros já em tempo de compilação.
+```java
+@Entity // Marca a classe como tabela no banco
+public class Reserva {
 
-O que torna essa classe especial, do ponto de vista de Java moderno, é o uso de **anotações de
-mapeamento objeto-relacional**, o famoso ORM. A classe é marcada com `@Entity`, o que diz ao
-Hibernate que ela corresponde a uma tabela no banco. O atributo `id` recebe `@Id`, indicando que ele
-é a chave primária, e recebe também `@GeneratedValue` com a estratégia `IDENTITY`, que delega ao
-próprio MySQL a geração automática e incremental desse identificador. O ponto importante aqui é que
-eu não escrevo SQL para isso: eu trabalho com objetos Java, e o framework cuida da tradução entre o
-mundo dos objetos e o mundo das tabelas. [posso mostrar o trecho da entidade no `trecho.md`]
+    @Id // Define a chave primaria
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto-incremento no MySQL
+    private Long id;
+
+    private String nomeCliente;
+    private LocalDate dataReserva;
+    private int quantidadePessoas;
+    private String status;
+```
+
+A primeira coisa que eu quero destacar aqui é o **encapsulamento**: vejam que todos os atributos — o
+`id`, o `nomeCliente`, a `dataReserva`, a `quantidadePessoas` e o `status` — são declarados como
+`private`. Isso significa que ninguém de fora acessa esses dados diretamente. O acesso só acontece
+através dos métodos `get` e `set`, como neste par de exemplo:
+
+```java
+public String getNomeCliente() {
+    return nomeCliente;
+}
+
+public void setNomeCliente(String nomeCliente) {
+    this.nomeCliente = nomeCliente;
+}
+```
+
+Esses getters e setters são a porta de entrada e de saída controlada para cada atributo. Esse é
+exatamente o princípio do encapsulamento que estudamos: proteger o estado interno do objeto e expor
+apenas o que for necessário.
+
+Voltando àquela lista de atributos, reparem também na **tipagem**, porque cada um tem um tipo bem
+escolhido. O `id` é um `Long`; a data é um `LocalDate`, que é a classe moderna do Java para
+representar datas sem hora; a quantidade de pessoas é um `int`, que é um tipo primitivo; e tanto o
+nome quanto o status são `String`. Esse cuidado com os tipos é importante porque é o que garante que o
+dado certo seja armazenado da forma certa, e o compilador nos ajuda a evitar erros já em tempo de
+compilação.
+
+E agora o ponto que torna essa classe especial do ponto de vista de Java moderno: as **anotações de
+mapeamento objeto-relacional**, o famoso ORM. Olhem de novo para as três anotações no código: a classe
+é marcada com `@Entity`, o que diz ao Hibernate que ela corresponde a uma tabela no banco. O atributo
+`id` recebe `@Id`, indicando que ele é a chave primária, e recebe também
+`@GeneratedValue(strategy = GenerationType.IDENTITY)`, que delega ao próprio MySQL a geração automática
+e incremental desse identificador. Lembram do Passo 3 da demonstração, quando o ID apareceu sozinho
+depois de salvar? É exatamente essa anotação a responsável por isso. O ponto importante aqui é que eu
+não escrevo SQL para nada disso: eu trabalho com objetos Java, e o framework cuida da tradução entre o
+mundo dos objetos e o mundo das tabelas.
 
 Subindo uma camada, chegamos ao **repositório**, a interface `ReservaRepository`. E essa parte é uma
-das mais elegantes do projeto, porque mostra bem o poder da abstração em Java. Repare que
-`ReservaRepository` é apenas uma **interface**, e ela não tem nenhuma implementação escrita por nós.
-Ela simplesmente **estende** `JpaRepository`, informando dois tipos genéricos: a entidade `Reserva` e
-o tipo da sua chave primária, que é `Long`. A partir desse momento, o Spring Data JPA gera
+das mais elegantes do projeto. Vou mostrar o código inteiro, porque ele cabe em poucas linhas:
+
+```java
+@Repository
+public interface ReservaRepository extends JpaRepository<Reserva, Long> {
+}
+```
+
+É só isso. Repare que `ReservaRepository` é apenas uma **interface**, e ela não tem nenhuma
+implementação escrita por nós — o corpo está literalmente vazio. Ela simplesmente **estende**
+`JpaRepository`, informando dois tipos genéricos entre os sinais de menor e maior: a entidade
+`Reserva` e o tipo da sua chave primária, que é `Long`. A partir desse momento, o Spring Data JPA gera
 automaticamente, em tempo de execução, toda a implementação dos métodos de acesso ao banco — como
 `save`, `findAll`, `findById` e `deleteById`. Aqui aparecem dois conceitos fortes que vimos na
-disciplina: o uso de **generics**, com aqueles tipos parametrizados entre os sinais de menor e maior,
-e o uso de **herança de interface**, em que a minha interface herda um contrato pronto e cheio de
-comportamento. É um exemplo claro de como programar voltado para abstrações nos poupa muito código.
+disciplina: o uso de **generics**, com aqueles tipos parametrizados, e o uso de **herança de
+interface**, em que a minha interface herda um contrato pronto e cheio de comportamento. É um exemplo
+claro de como programar voltado para abstrações nos poupa muito código.
 
 Na camada seguinte, temos o **serviço**, a classe `ReservaService`, anotada com `@Service`. Essa é a
-camada que concentra a lógica de negócio e que serve de ponte entre o controlador e o repositório. E
-é aqui que eu gostaria de chamar a atenção para a **injeção de dependência**, que é um conceito
-central tanto em orientação a objetos quanto no Spring. Repare que o `ReservaService` declara o
-`ReservaRepository` como um atributo `private final`, e o recebe pelo **construtor**. Ele não cria o
-repositório com `new`; em vez disso, ele apenas declara que precisa de um, e o próprio Spring se
-encarrega de fornecer essa dependência pronta. Isso é o que chamamos de inversão de controle. O ganho
-disso é enorme: as classes ficam desacopladas, e essa mesma característica é o que vai permitir, mais
-para frente, que a gente substitua o repositório real por um objeto simulado durante os testes.
+camada que concentra a lógica de negócio e que serve de ponte entre o controlador e o repositório. Vou
+mostrar primeiro o topo da classe e o construtor:
 
-Ainda no serviço, vale comentar o uso de **coleções e de tipos genéricos** nas assinaturas dos
-métodos. O método `listarTodas`, por exemplo, devolve uma `List<Reserva>`, ou seja, uma lista
-tipada de reservas. E o método `buscarPorId` devolve um `Optional<Reserva>`. Esse `Optional` é um
-detalhe que eu acho importante destacar, porque ele é a forma moderna do Java de representar algo que
-**pode ou não existir**. Em vez de devolver `null` e correr o risco do famoso `NullPointerException`,
-eu devolvo um `Optional`, que obriga quem recebe a tratar de forma explícita o caso em que a reserva
-não foi encontrada. É uma escolha que demonstra preocupação com robustez.
+```java
+@Service
+public class ReservaService {
+
+    private final ReservaRepository reservaRepository;
+
+    // Injeta o repository para acessar o banco
+    public ReservaService(ReservaRepository reservaRepository) {
+        this.reservaRepository = reservaRepository;
+    }
+```
+
+É aqui que eu gostaria de chamar a atenção para a **injeção de dependência**, que é um conceito central
+tanto em orientação a objetos quanto no Spring. Reparem que o `ReservaService` declara o
+`ReservaRepository` como um atributo `private final`, e o recebe pelo **construtor**. Ele não cria o
+repositório com `new` em lugar nenhum; em vez disso, ele apenas declara que precisa de um, e o próprio
+Spring se encarrega de fornecer essa dependência pronta. Isso é o que chamamos de inversão de controle.
+O ganho disso é enorme: as classes ficam desacopladas, e essa mesma característica é o que vai
+permitir, mais para frente, que a gente substitua o repositório real por um objeto simulado durante os
+testes.
+
+Agora vamos aos métodos do serviço, que são curtos e diretos:
+
+```java
+public Reserva salvar(Reserva reserva) {
+    return reservaRepository.save(reserva);
+}
+
+public List<Reserva> listarTodas() {
+    return reservaRepository.findAll();
+}
+
+public Optional<Reserva> buscarPorId(Long id) {
+    return reservaRepository.findById(id);
+}
+
+public void excluir(Long id) {
+    reservaRepository.deleteById(id);
+}
+```
+
+Olhem como cada método da camada de serviço corresponde a uma das funcionalidades que eu demonstrei lá
+no começo: `salvar` é o que executa quando clico em Salvar, `listarTodas` é o que monta a tabela,
+`buscarPorId` é o que carrega os dados na edição, e `excluir` é o botão vermelho. E vale comentar o uso
+de **coleções e de tipos genéricos** nas assinaturas. O método `listarTodas`, por exemplo, devolve uma
+`List<Reserva>`, ou seja, uma lista tipada de reservas. E o método `buscarPorId` devolve um
+`Optional<Reserva>`. Esse `Optional` é um detalhe que eu acho importante destacar, porque ele é a forma
+moderna do Java de representar algo que **pode ou não existir**. Em vez de devolver `null` e correr o
+risco do famoso `NullPointerException`, eu devolvo um `Optional`, que obriga quem recebe a tratar de
+forma explícita o caso em que a reserva não foi encontrada. É uma escolha que demonstra preocupação com
+robustez.
 
 Por fim, no topo, está o **controlador**, a classe `ReservaController`, anotada com `@Controller`.
-Essa é a camada que recebe as requisições do navegador e decide o que responder. Ela também recebe o
-`ReservaService` por injeção de dependência no construtor, mantendo a mesma filosofia de baixo
-acoplamento. Aqui aparecem as anotações de mapeamento web: o `@GetMapping`, que responde às
-requisições de visualização, e o `@PostMapping`, que trata o envio do formulário. Cada método está
-associado a uma rota: a raiz redireciona para a lista, `/reservas` mostra a listagem, `/reservas/nova`
-abre o formulário, `/reservas/salvar` persiste a reserva, e há ainda as rotas de editar e excluir,
-que usam `@PathVariable` para capturar o `id` que vem na própria URL.
+Essa é a camada que recebe as requisições do navegador e decide o que responder. Vou mostrar o começo
+da classe, com o construtor e as duas primeiras rotas:
 
-E eu queria fechar essa parte mostrando um trecho que, para mim, resume bem a maturidade do código: é
-o método de edição. Quando o usuário pede para editar uma reserva, o controlador chama o serviço, que
-devolve aquele `Optional`. E aí, em vez de um monte de `if` para verificar nulo, eu uso programação
-funcional com `map` e `orElse`: se a reserva existe, eu a coloco no modelo e abro o formulário; se ela
-não existe, eu simplesmente redireciono de volta para a lista. Em poucas linhas, eu trato com elegância
-os dois caminhos possíveis. [aqui, posso apontar esse trecho no `trecho.md`]
+```java
+@Controller
+public class ReservaController {
+
+    private final ReservaService reservaService;
+
+    public ReservaController(ReservaService reservaService) {
+        this.reservaService = reservaService;
+    }
+
+    // Abre direto a tela principal (lista)
+    @GetMapping("/")
+    public String inicio() {
+        return "redirect:/reservas";
+    }
+
+    // Lista todas as reservas
+    @GetMapping("/reservas")
+    public String listarReservas(Model model) {
+        model.addAttribute("reservas", reservaService.listarTodas());
+        return "lista-reservas";
+    }
+```
+
+Reparem que ela também recebe o `ReservaService` por injeção de dependência no construtor, mantendo a
+mesma filosofia de baixo acoplamento. E aqui aparecem as anotações de mapeamento web. Aquele
+`@GetMapping("/")` é exatamente o que faz a aplicação, no Passo 1 da demonstração, redirecionar direto
+para a lista. E o `@GetMapping("/reservas")` é o que monta a tabela: ele chama o serviço, coloca as
+reservas no `Model` e devolve o nome da tela `lista-reservas`.
+
+Vou mostrar agora as rotas que tratam o cadastro:
+
+```java
+// Abre o formulario para cadastrar nova reserva
+@GetMapping("/reservas/nova")
+public String novaReserva(Model model) {
+    model.addAttribute("reserva", new Reserva());
+    return "formulario-reserva";
+}
+
+// Salva nova reserva ou edicao
+@PostMapping("/reservas/salvar")
+public String salvarReserva(@ModelAttribute Reserva reserva) {
+    reservaService.salvar(reserva);
+    return "redirect:/reservas";
+}
+```
+
+Aqui aparece a diferença entre os dois verbos HTTP: o `@GetMapping` responde às requisições de
+visualização, como abrir o formulário vazio, e o `@PostMapping` trata o envio do formulário. O
+`@ModelAttribute` é o que faz a mágica de pegar os campos que o usuário preencheu na tela e montar, de
+forma automática, um objeto `Reserva` já preenchido. Depois de salvar, repare no `return
+"redirect:/reservas"`: é literalmente isso que faz a tela voltar para a lista no Passo 3.
+
+E eu queria fechar essa parte mostrando o trecho que, para mim, resume bem a maturidade do código: o
+método de edição, junto com o de exclusão, que usam `@PathVariable`:
+
+```java
+// Carrega uma reserva existente no formulario
+@GetMapping("/reservas/editar/{id}")
+public String editarReserva(@PathVariable Long id, Model model) {
+    return reservaService.buscarPorId(id)
+            .map(reserva -> {
+                model.addAttribute("reserva", reserva);
+                return "formulario-reserva";
+            })
+            .orElse("redirect:/reservas");
+}
+
+// Exclui a reserva pela lista
+@GetMapping("/reservas/excluir/{id}")
+public String excluirReserva(@PathVariable Long id) {
+    reservaService.excluir(id);
+    return "redirect:/reservas";
+}
+```
+
+Repare no `@PathVariable Long id`: ele captura o número que vem na própria URL, como em
+`/reservas/editar/1`. E olhem o tratamento do método de edição: quando o usuário pede para editar, o
+controlador chama o serviço, que devolve aquele `Optional`. E aí, em vez de um monte de `if` para
+verificar nulo, eu uso programação funcional com `map` e `orElse`: se a reserva existe, eu a coloco no
+modelo e abro o formulário já preenchido — que foi o que vimos no Passo 4; se ela não existe, eu
+simplesmente redireciono de volta para a lista. Em poucas linhas, eu trato com elegância os dois
+caminhos possíveis.
 
 Então, juntando tudo: a requisição entra pelo **controller**, que conversa com o **service**, que por
 sua vez conversa com o **repository**, que persiste a **entity** no banco. É um fluxo limpo, em

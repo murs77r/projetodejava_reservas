@@ -330,11 +330,105 @@ modelo e abro o formulário já preenchido — que foi o que vimos no Passo 4; s
 simplesmente redireciono de volta para a lista. Em poucas linhas, eu trato com elegância os dois
 caminhos possíveis.
 
+### O mapa completo de rotas
+
+Antes de seguir, eu queria parar um pouco e mostrar, de forma organizada, **todas as rotas** que esse
+controlador expõe, porque elas são a porta de entrada da aplicação inteira. São seis rotas, e cada uma
+responde a um tipo específico de requisição HTTP:
+
+| Verbo HTTP | Rota | Método Java | O que faz |
+| --- | --- | --- | --- |
+| `GET` | `/` | `inicio()` | Redireciona direto para a lista de reservas |
+| `GET` | `/reservas` | `listarReservas()` | Monta a tabela com todas as reservas |
+| `GET` | `/reservas/nova` | `novaReserva()` | Abre o formulário vazio para cadastro |
+| `POST` | `/reservas/salvar` | `salvarReserva()` | Grava uma reserva nova ou editada |
+| `GET` | `/reservas/editar/{id}` | `editarReserva()` | Abre o formulário já preenchido |
+| `GET` | `/reservas/excluir/{id}` | `excluirReserva()` | Remove a reserva e volta para a lista |
+
+Olhando essa tabela, dá para perceber uma decisão de projeto importante: eu uso o verbo `GET` para
+tudo que é **navegação e leitura** — abrir a lista, abrir um formulário, disparar uma exclusão a partir
+de um link — e reservo o verbo `POST` exclusivamente para o momento em que **dados são enviados** do
+formulário para o servidor, que é o salvar. Essa separação entre `GET` e `POST` é um dos fundamentos do
+protocolo HTTP, e o Spring deixa isso explícito justamente através das anotações `@GetMapping` e
+`@PostMapping`.
+
+### O que acontece, por dentro, quando uma requisição chega
+
+Agora deixa eu detalhar o **caminho que uma requisição percorre**, porque é aqui que a coisa fica
+interessante. Imaginem que o usuário clicou em "Nova Reserva". O navegador dispara uma requisição
+`GET /reservas/nova` para o servidor. Quem recebe essa requisição primeiro não é o nosso código: é um
+componente interno do Spring chamado `DispatcherServlet`, que funciona como um porteiro central. Ele
+olha a URL e o verbo, consulta o mapeamento de rotas e descobre que `GET /reservas/nova` corresponde ao
+método `novaReserva` do nosso `ReservaController`. Só então ele entrega o controle para o nosso código.
+
+O nosso método executa, coloca um objeto `Reserva` vazio dentro do `Model` — que é basicamente uma
+maleta de dados que viaja do controlador para a tela — e devolve uma `String`: `"formulario-reserva"`.
+E aqui acontece outra etapa que costuma passar despercebida: essa `String` **não é** o HTML final. Ela
+é apenas o **nome lógico** de uma tela. O Spring entrega esse nome a um componente chamado
+`ViewResolver`, que sabe que `"formulario-reserva"` corresponde ao arquivo
+`templates/formulario-reserva.html`. É o Thymeleaf que, então, pega esse template, junta com os dados
+da maleta `Model` e gera o HTML de verdade, que finalmente volta para o navegador.
+
+E tem um detalhe que eu acho elegante no fluxo de salvar. Reparem que, depois de gravar, eu não devolvo
+uma tela: eu devolvo `"redirect:/reservas"`. Isso é o que se chama de padrão **Post-Redirect-Get**. Em
+vez de responder o `POST` diretamente com uma página, eu mando o navegador fazer uma **nova requisição**
+`GET` para a lista. O ganho prático disso é que, se o usuário apertar F5 para atualizar a página depois
+de salvar, ele não corre o risco de reenviar o formulário e cadastrar a reserva duas vezes. É uma
+pequena decisão que evita um bug clássico de aplicações web.
+
+### O caminho até o banco de dados
+
+E agora eu chego no que, para mim, amarra toda a apresentação: **o caminho que o dado percorre até o
+banco de dados**. Vamos seguir uma única reserva, do clique até o MySQL. Quando o usuário envia o
+formulário, a requisição `POST /reservas/salvar` chega ao **controller**. O controller não sabe nada
+sobre banco de dados — a única coisa que ele faz é chamar `reservaService.salvar(reserva)`. O
+**service**, por sua vez, também não escreve SQL nenhum: ele apenas repassa para
+`reservaRepository.save(reserva)`. O **repository**, que é só aquela interface vazia estendendo
+`JpaRepository`, é traduzido em tempo de execução pelo **Spring Data JPA**, que aciona o **Hibernate**.
+É o Hibernate, o nosso ORM, que finalmente transforma o objeto `Reserva` em um comando SQL `INSERT` ou
+`UPDATE` e o envia, através do **driver JDBC do MySQL**, para o banco. Resumindo a cadeia:
+
+> **controller → service → repository → Spring Data JPA → Hibernate → driver JDBC → MySQL**
+
+Cada seta dessa é uma fronteira de responsabilidade, e ninguém "fura" a camada de baixo. O controller
+nunca fala direto com o banco; ele sempre passa pelo service e pelo repository. Isso é o que mantém o
+código organizado e testável.
+
+Mas falta uma peça: como é que a aplicação **sabe onde fica esse banco**? Essa configuração não está no
+código Java, e sim em um arquivo de propriedades, o `application.properties`. Vou mostrar os trechos que
+definem a conexão:
+
+```properties
+# Configuração de conexão com o banco MySQL local
+spring.datasource.url=jdbc:mysql://localhost:3306/reservas_db
+spring.datasource.username=root
+spring.datasource.******   # senha definida no application.properties
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+# Atualiza as tabelas automaticamente com base nas entidades
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+```
+
+Reparem nas três informações essenciais. A `spring.datasource.url` é o **endereço** do banco: o
+protocolo `jdbc:mysql`, o host `localhost`, a porta `3306` e o nome do banco `reservas_db`. Logo abaixo
+vêm o usuário e a senha. E o `driver-class-name` é a peça que ensina o Java a "conversar" o dialeto do
+MySQL. Há ainda dois ajustes que valem o comentário: o `ddl-auto=update`, que faz o Hibernate **criar e
+atualizar as tabelas sozinho** a partir das nossas entidades — é por isso que eu nunca precisei escrever
+um `CREATE TABLE` na mão; e o `show-sql=true`, que imprime no console o SQL gerado, o que é ótimo para
+estudar e enxergar exatamente o comando que sai daquela cadeia toda que eu acabei de descrever.
+
+E só para fechar essa ideia: como o projeto também roda em Docker, existe um segundo arquivo, o
+`application-docker.properties`, que muda apenas o host do banco de `localhost` para `db` — que é o nome
+do serviço do MySQL lá no `docker-compose`. É o mesmo código Java, apenas com um endereço de banco
+diferente, o que mostra na prática como a configuração fica separada da lógica da aplicação.
+
 Então, juntando tudo: a requisição entra pelo **controller**, que conversa com o **service**, que por
-sua vez conversa com o **repository**, que persiste a **entity** no banco. É um fluxo limpo, em
-camadas, com responsabilidades separadas, encapsulamento, injeção de dependência, generics, coleções
-e mapeamento objeto-relacional. Todos esses conceitos que a gente estudou em Orientação a Objetos
-estão aplicados de forma concreta aqui.
+sua vez conversa com o **repository**, que — por meio do JPA e do Hibernate, configurados pelo
+`application.properties` — persiste a **entity** no MySQL. É um fluxo limpo, em camadas, com
+responsabilidades separadas, encapsulamento, injeção de dependência, generics, coleções e mapeamento
+objeto-relacional. Todos esses conceitos que a gente estudou em Orientação a Objetos estão aplicados de
+forma concreta aqui.
 
 ---
 

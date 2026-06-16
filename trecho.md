@@ -130,6 +130,28 @@ public String editarReserva(@PathVariable Long id, Model model) {
 }
 ```
 
+### 2.6 — Configuração do caminho até o banco (`application.properties`)
+
+- **Arquivo:** `src/main/resources/application.properties`
+- **Finalidade:** define o endereço do MySQL (datasource), o driver JDBC e o comportamento do JPA/Hibernate.
+- **Relação com a fala:** apoia o trecho sobre rotas, requisições e o caminho até o banco, mostrando onde a conexão é configurada (fora do código Java) e como o `ddl-auto=update` cria as tabelas automaticamente.
+
+```properties
+# Endereco do banco: protocolo, host, porta e nome do schema
+spring.datasource.url=jdbc:mysql://localhost:3306/reservas_db
+spring.datasource.username=root
+# (senha definida no proprio application.properties)
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+# Hibernate cria/atualiza as tabelas a partir das entidades
+spring.jpa.hibernate.ddl-auto=update
+# Imprime no console o SQL gerado pelo ORM
+spring.jpa.show-sql=true
+```
+
+> **Caminho do dado:** controller → service → repository → Spring Data JPA → Hibernate → driver JDBC → MySQL.
+> No Docker, o arquivo `application-docker.properties` muda apenas o host de `localhost` para `db`.
+
 ---
 
 ## Seção 3 — Testes e Qualidade

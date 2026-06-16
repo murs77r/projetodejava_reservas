@@ -1,8 +1,7 @@
-# 1. Parte Geral: Visão Geral e Funcionalidades
+# Trechos de Código Referenciados em `apresentacao.md`
 
-Inicio a apresentação com o problema que o sistema resolve: organizar reservas de forma centralizada, reduzir controle manual e manter um histórico confiável das solicitações. Mostro que a aplicação atende um cenário comum de universidade e de escritório, no qual preciso cadastrar, consultar, atualizar e excluir reservas com fluxo simples para o usuário final.
-
-Aponto que a base tecnológica já evidencia esse objetivo, porque o projeto combina camada web, persistência e testes no mesmo ecossistema Spring.
+## Trecho 1
+Arquivo na árvore do repositório: `pom.xml`
 
 ```java
 // /home/runner/work/projetodejava_reservas/projetodejava_reservas/pom.xml - dependências e plugins principais do projeto
@@ -42,7 +41,8 @@ Aponto que a base tecnológica já evidencia esse objetivo, porque o projeto com
 </dependencies>
 ```
 
-Descrevo as funcionalidades pela ótica de uso real. A pessoa acessa a lista principal, abre o formulário para nova reserva, salva, volta para a listagem e também pode editar ou excluir. Destaco que a interface já prevê o estado vazio da tabela e mantém ações objetivas no mesmo ponto da tela.
+## Trecho 2
+Arquivo na árvore do repositório: `src/main/resources/templates/lista-reservas.html`
 
 ```java
 // /home/runner/work/projetodejava_reservas/projetodejava_reservas/src/main/resources/templates/lista-reservas.html - template da listagem principal
@@ -71,7 +71,8 @@ Descrevo as funcionalidades pela ótica de uso real. A pessoa acessa a lista pri
 </tbody>
 ```
 
-Explico a principal regra de tela: o mesmo formulário atende criação e edição, com controle feito pelo campo `id`. Assim, reduzo duplicação de interface e mantenho o fluxo de dados consistente.
+## Trecho 3
+Arquivo na árvore do repositório: `src/main/resources/templates/formulario-reserva.html`
 
 ```java
 // /home/runner/work/projetodejava_reservas/projetodejava_reservas/src/main/resources/templates/formulario-reserva.html - template de cadastro e edição
@@ -105,11 +106,8 @@ Explico a principal regra de tela: o mesmo formulário atende criação e ediç�
 </form>
 ```
 
-# 2. Parte Técnica: Programação Orientada a Objetos II (Java, Endpoints e Persistência)
-
-Organizo esta parte pela arquitetura em camadas. Mostro a entidade de domínio, a camada de serviço, o repositório e o controller como responsabilidades separadas. Com essa divisão, ganho manutenção mais simples e testes mais focados.
-
-Nos pilares de POO, explico encapsulamento e abstração pela própria entidade `Reserva`, que guarda estado em atributos privados e expõe acesso controlado por métodos públicos.
+## Trecho 4
+Arquivo na árvore do repositório: `src/main/java/com/exemplo/reservas/model/Reserva.java`
 
 ```java
 // /home/runner/work/projetodejava_reservas/projetodejava_reservas/src/main/java/com/exemplo/reservas/model/Reserva.java - classe de domínio Reserva
@@ -143,7 +141,8 @@ public class Reserva {
 }
 ```
 
-Mostro herança e polimorfismo pela extensão de `JpaRepository`, em que recebo operações prontas sem reescrever CRUD. Também destaco que o Spring injeta implementação concreta em tempo de execução, enquanto o código permanece orientado ao contrato da interface.
+## Trecho 5
+Arquivo na árvore do repositório: `src/main/java/com/exemplo/reservas/repository/ReservaRepository.java`
 
 ```java
 // /home/runner/work/projetodejava_reservas/projetodejava_reservas/src/main/java/com/exemplo/reservas/repository/ReservaRepository.java - interface de persistência
@@ -152,7 +151,8 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
 }
 ```
 
-Relaciono essa estrutura com padrões de projeto: Repository para persistência, Service Layer para regras de aplicação e Injeção de Dependência via construtor para reduzir acoplamento.
+## Trecho 6
+Arquivo na árvore do repositório: `src/main/java/com/exemplo/reservas/service/ReservaService.java`
 
 ```java
 // /home/runner/work/projetodejava_reservas/projetodejava_reservas/src/main/java/com/exemplo/reservas/service/ReservaService.java - camada de serviço
@@ -183,7 +183,8 @@ public class ReservaService {
 }
 ```
 
-Na camada web, explico o fluxo HTTP no `ReservaController`: recebo requisição, delego para serviço, atualizo `Model` e retorno view ou redirecionamento. Destaco o tratamento do caso de edição com `id` inexistente, que retorna para a listagem.
+## Trecho 7
+Arquivo na árvore do repositório: `src/main/java/com/exemplo/reservas/controller/ReservaController.java`
 
 ```java
 // /home/runner/work/projetodejava_reservas/projetodejava_reservas/src/main/java/com/exemplo/reservas/controller/ReservaController.java - controller principal da aplicação
@@ -220,7 +221,8 @@ public class ReservaController {
 }
 ```
 
-Detalho a persistência com Spring Data JPA e Hibernate. Mostro que o mapeamento da entidade e as propriedades de conexão definem o comportamento de leitura e escrita no banco relacional.
+## Trecho 8
+Arquivo na árvore do repositório: `src/main/resources/application.properties`
 
 ```java
 // /home/runner/work/projetodejava_reservas/projetodejava_reservas/src/main/resources/application.properties - configuração de persistência local
@@ -231,7 +233,8 @@ spring.jpa.show-sql=true
 spring.jpa.properties.hibernate.format_sql=true
 ```
 
-Mostro também a estratégia de perfil de CI com H2 em memória, que simplifica execução automatizada sem depender de MySQL externo.
+## Trecho 9
+Arquivo na árvore do repositório: `src/main/resources/application-ci.properties`
 
 ```java
 // /home/runner/work/projetodejava_reservas/projetodejava_reservas/src/main/resources/application-ci.properties - configuração de persistência para CI
@@ -243,11 +246,8 @@ spring.jpa.hibernate.ddl-auto=update
 spring.jpa.show-sql=false
 ```
 
-# 3. Parte Técnica: Testes e Qualidade de Software (QA)
-
-Explico a estratégia de testes por camadas: uso testes unitários no serviço, testes MVC no controller, teste de persistência com JPA e teste E2E para fluxo crítico da interface. Com essa abordagem, valido comportamento interno e experiência final.
-
-Identifico as ferramentas principais: JUnit 5 para estrutura de testes, Mockito para mocks e verificação de chamadas, MockMvc para endpoints MVC, H2 para ambiente de teste, JaCoCo para cobertura e Playwright para E2E.
+## Trecho 10
+Arquivo na árvore do repositório: `.github/workflows/ci-qa.yml`
 
 ```java
 // /home/runner/work/projetodejava_reservas/projetodejava_reservas/.github/workflows/ci-qa.yml - automação de qualidade no GitHub Actions
@@ -269,7 +269,8 @@ Identifico as ferramentas principais: JUnit 5 para estrutura de testes, Mockito 
     path: target/site/jacoco
 ```
 
-Na análise prática de qualidade, uso o cenário de teste unitário de serviço para mostrar isolamento da lógica. O mock substitui o repositório, o método testado executa comportamento real da classe e os asserts confirmam resultado e interação.
+## Trecho 11
+Arquivo na árvore do repositório: `src/test/java/com/exemplo/reservas/service/ReservaServiceTest.java`
 
 ```java
 // /home/runner/work/projetodejava_reservas/projetodejava_reservas/src/test/java/com/exemplo/reservas/service/ReservaServiceTest.java - teste unitário da camada de serviço
@@ -296,7 +297,8 @@ class ReservaServiceTest {
 }
 ```
 
-Complemento com teste de controller para demonstrar contrato HTTP e integração da camada web com o modelo de visualização.
+## Trecho 12
+Arquivo na árvore do repositório: `src/test/java/com/exemplo/reservas/controller/ReservaControllerWebTest.java`
 
 ```java
 // /home/runner/work/projetodejava_reservas/projetodejava_reservas/src/test/java/com/exemplo/reservas/controller/ReservaControllerWebTest.java - teste da camada web
@@ -322,7 +324,8 @@ class ReservaControllerWebTest {
 }
 ```
 
-Finalizo com o teste E2E, no qual percorro o fluxo de cadastro e confirmação da reserva na listagem. Esse nível valida a aplicação como o usuário realmente percebe.
+## Trecho 13
+Arquivo na árvore do repositório: `e2e/playwright/tests/reserva-fluxo-critico.spec.js`
 
 ```java
 // /home/runner/work/projetodejava_reservas/projetodejava_reservas/e2e/playwright/tests/reserva-fluxo-critico.spec.js - teste E2E do fluxo principal
@@ -338,5 +341,3 @@ test('Fluxo critico: cadastrar e visualizar reserva na lista', async ({ page }) 
   await expect(page.getByText('Cliente E2E')).toBeVisible();
 });
 ```
-
-Encerro mostrando que o projeto, mesmo enxuto, comprova domínio de POO II, arquitetura em camadas, persistência com ORM e estratégia de QA com cobertura em múltiplos níveis.

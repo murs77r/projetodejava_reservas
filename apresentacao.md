@@ -82,259 +82,72 @@ parte de Testes e Qualidade, mostrando como nós garantimos que o sistema funcio
 ## Parte 2 — Linguagem de Programação Orientada a Objetos II
 
 Agora eu queria abrir o sistema por dentro e mostrar, **código a código**, como ele está estruturado,
-porque é aqui que ficam os conceitos de Java e de orientação a objetos que aprendemos na disciplina.
-Eu vou trazer os trechos relevantes para a tela e ir comentando cada um deles.
+porque é aqui que ficam os conceitos de Java e de orientação a objetos da disciplina. Os trechos que eu
+vou citar estão todos reunidos no arquivo `trecho.md`, e eu vou abrindo cada um conforme for falando.
 
-O ponto de partida da aplicação é a classe `SistemaReservasApplication`. Ela é bem pequena, mas é
-estratégica. Vou mostrar o código dela na tela:
+> **[Abrir `SistemaReservasApplication.java`, em `src/main/java/com/exemplo/reservas/` — trecho 2.1 do `trecho.md`]**
 
-```java
-@SpringBootApplication
-public class SistemaReservasApplication {
+O ponto de partida é a classe `SistemaReservasApplication`. Ela é pequena, mas estratégica. Repare em
+duas coisas: o método `main`, que é o ponto de entrada de qualquer programa Java, e a anotação
+`@SpringBootApplication`. É ela que liga o motor do Spring Boot — ativa a configuração automática, a
+varredura de componentes e levanta o servidor embutido. Com pouquíssimo código, a gente sobe a
+aplicação inteira.
 
-    public static void main(String[] args) {
-        SpringApplication.run(SistemaReservasApplication.class, args);
-    }
-}
-```
+A grande decisão de design é que o sistema está organizado em **camadas bem separadas**: a **entidade**
+(`model`), o **repositório** (`repository`), o **serviço** (`service`) e o **controlador**
+(`controller`). Cada uma tem uma responsabilidade única — é o princípio da responsabilidade única
+aplicado na prática, e é o que deixa o código fácil de entender, manter e testar.
 
-Reparem em duas coisas. A primeira é o método `main`, que é o ponto de entrada de qualquer programa
-Java. A segunda, e mais importante, é a anotação `@SpringBootApplication`, ali em cima da classe. Na
-prática, essa anotação é o que liga o motor do Spring Boot — ela ativa a configuração automática, a
-varredura de componentes e levanta todo o servidor embutido. Ou seja, com pouquíssimo código a gente
-sobe a aplicação inteira.
+> **[Abrir `Reserva.java`, em `src/main/java/com/exemplo/reservas/model/` — trecho 2.2 do `trecho.md`]**
 
-A primeira coisa que eu gostaria de destacar é que o sistema foi organizado em **camadas bem
-separadas**, seguindo o que se costuma chamar de arquitetura em camadas. Nós temos quatro papéis
-principais: a **entidade** (`model`), o **repositório** (`repository`), o **serviço** (`service`) e
-o **controlador** (`controller`). Cada uma dessas camadas tem uma responsabilidade única e bem
-definida, e isso não é por acaso — é a aplicação direta do princípio de responsabilidade única, em
-que cada classe deve ter um motivo claro para existir. Essa separação deixa o código mais fácil de
-entender, de manter e de testar.
+Começo pela base de tudo, a entidade `Reserva`, que representa em objeto Java aquilo que no banco é uma
+linha de uma tabela. Três pontos merecem destaque aqui. Primeiro, o **encapsulamento**: todos os
+atributos são `private` e só são acessados pelos métodos `get` e `set` — o estado interno fica
+protegido. Segundo, a **tipagem**: cada atributo tem o tipo certo, como o `LocalDate` para a data e o
+`int` para a quantidade, o que deixa o compilador nos ajudar a evitar erros. E terceiro, o que torna a
+classe especial: as **anotações de ORM**. O `@Entity` diz ao Hibernate que a classe é uma tabela, e o
+par `@Id` com `@GeneratedValue(IDENTITY)` delega ao MySQL a geração automática do identificador —
+lembram do ID que apareceu sozinho no Passo 3? É essa anotação. O importante é que eu não escrevo SQL:
+trabalho com objetos Java, e o framework cuida da tradução.
 
-Deixa eu começar pela base de tudo, que é a entidade `Reserva`. Essa é a classe que representa, em
-objeto Java, aquilo que no banco de dados é uma linha de uma tabela. Vou mostrar o cabeçalho da classe
-e os atributos:
+> **[Abrir `ReservaRepository.java`, em `src/main/java/com/exemplo/reservas/repository/` — trecho 2.3 do `trecho.md`]**
 
-```java
-@Entity // Marca a classe como tabela no banco
-public class Reserva {
+Subindo uma camada, chego ao **repositório**, e essa é uma das partes mais elegantes do projeto. Repare
+que `ReservaRepository` é só uma **interface** de corpo vazio: ela apenas **estende** `JpaRepository`,
+informando dois tipos genéricos, a entidade `Reserva` e o tipo da chave, `Long`. A partir daí, o Spring
+Data JPA gera sozinho toda a implementação — `save`, `findAll`, `findById`, `deleteById`. Em poucas
+linhas aparecem dois conceitos fortes da disciplina: **generics** e **herança de interface**, herdando
+um contrato pronto e cheio de comportamento.
 
-    @Id // Define a chave primaria
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto-incremento no MySQL
-    private Long id;
+> **[Abrir `ReservaService.java`, em `src/main/java/com/exemplo/reservas/service/` — trecho 2.4 do `trecho.md`]**
 
-    private String nomeCliente;
-    private LocalDate dataReserva;
-    private int quantidadePessoas;
-    private String status;
-```
+Na camada seguinte está o **serviço**, anotado com `@Service`, que concentra a lógica e faz a ponte
+entre o controlador e o repositório. O destaque aqui é a **injeção de dependência**: o `ReservaService`
+declara o `ReservaRepository` como `private final` e o recebe pelo **construtor** — ele nunca faz `new`
+do repositório, apenas declara que precisa de um, e o Spring o entrega pronto. Isso é inversão de
+controle, e é o que deixa as classes desacopladas — exatamente o que vai permitir, nos testes, trocar o
+repositório real por um simulado. Reparem ainda nos métodos: `listarTodas` devolve uma `List<Reserva>`,
+uma **coleção tipada**, e `buscarPorId` devolve um `Optional<Reserva>`. Esse `Optional` é a forma
+moderna do Java de representar algo que **pode ou não existir** — em vez de devolver `null` e arriscar
+um `NullPointerException`, eu obrigo quem chama a tratar o caso de não encontrar.
 
-A primeira coisa que eu quero destacar aqui é o **encapsulamento**: vejam que todos os atributos — o
-`id`, o `nomeCliente`, a `dataReserva`, a `quantidadePessoas` e o `status` — são declarados como
-`private`. Isso significa que ninguém de fora acessa esses dados diretamente. O acesso só acontece
-através dos métodos `get` e `set`, como neste par de exemplo:
+> **[Abrir `ReservaController.java`, em `src/main/java/com/exemplo/reservas/controller/` — trecho 2.5 do `trecho.md`]**
 
-```java
-public String getNomeCliente() {
-    return nomeCliente;
-}
-
-public void setNomeCliente(String nomeCliente) {
-    this.nomeCliente = nomeCliente;
-}
-```
-
-Esses getters e setters são a porta de entrada e de saída controlada para cada atributo. Esse é
-exatamente o princípio do encapsulamento que estudamos: proteger o estado interno do objeto e expor
-apenas o que for necessário.
-
-Voltando àquela lista de atributos, reparem também na **tipagem**, porque cada um tem um tipo bem
-escolhido. O `id` é um `Long`; a data é um `LocalDate`, que é a classe moderna do Java para
-representar datas sem hora; a quantidade de pessoas é um `int`, que é um tipo primitivo; e tanto o
-nome quanto o status são `String`. Esse cuidado com os tipos é importante porque é o que garante que o
-dado certo seja armazenado da forma certa, e o compilador nos ajuda a evitar erros já em tempo de
-compilação.
-
-E agora o ponto que torna essa classe especial do ponto de vista de Java moderno: as **anotações de
-mapeamento objeto-relacional**, o famoso ORM. Olhem de novo para as três anotações no código: a classe
-é marcada com `@Entity`, o que diz ao Hibernate que ela corresponde a uma tabela no banco. O atributo
-`id` recebe `@Id`, indicando que ele é a chave primária, e recebe também
-`@GeneratedValue(strategy = GenerationType.IDENTITY)`, que delega ao próprio MySQL a geração automática
-e incremental desse identificador. Lembram do Passo 3 da demonstração, quando o ID apareceu sozinho
-depois de salvar? É exatamente essa anotação a responsável por isso. O ponto importante aqui é que eu
-não escrevo SQL para nada disso: eu trabalho com objetos Java, e o framework cuida da tradução entre o
-mundo dos objetos e o mundo das tabelas.
-
-Subindo uma camada, chegamos ao **repositório**, a interface `ReservaRepository`. E essa parte é uma
-das mais elegantes do projeto. Vou mostrar o código inteiro, porque ele cabe em poucas linhas:
-
-```java
-@Repository
-public interface ReservaRepository extends JpaRepository<Reserva, Long> {
-}
-```
-
-É só isso. Repare que `ReservaRepository` é apenas uma **interface**, e ela não tem nenhuma
-implementação escrita por nós — o corpo está literalmente vazio. Ela simplesmente **estende**
-`JpaRepository`, informando dois tipos genéricos entre os sinais de menor e maior: a entidade
-`Reserva` e o tipo da sua chave primária, que é `Long`. A partir desse momento, o Spring Data JPA gera
-automaticamente, em tempo de execução, toda a implementação dos métodos de acesso ao banco — como
-`save`, `findAll`, `findById` e `deleteById`. Aqui aparecem dois conceitos fortes que vimos na
-disciplina: o uso de **generics**, com aqueles tipos parametrizados, e o uso de **herança de
-interface**, em que a minha interface herda um contrato pronto e cheio de comportamento. É um exemplo
-claro de como programar voltado para abstrações nos poupa muito código.
-
-Na camada seguinte, temos o **serviço**, a classe `ReservaService`, anotada com `@Service`. Essa é a
-camada que concentra a lógica de negócio e que serve de ponte entre o controlador e o repositório. Vou
-mostrar primeiro o topo da classe e o construtor:
-
-```java
-@Service
-public class ReservaService {
-
-    private final ReservaRepository reservaRepository;
-
-    // Injeta o repository para acessar o banco
-    public ReservaService(ReservaRepository reservaRepository) {
-        this.reservaRepository = reservaRepository;
-    }
-```
-
-É aqui que eu gostaria de chamar a atenção para a **injeção de dependência**, que é um conceito central
-tanto em orientação a objetos quanto no Spring. Reparem que o `ReservaService` declara o
-`ReservaRepository` como um atributo `private final`, e o recebe pelo **construtor**. Ele não cria o
-repositório com `new` em lugar nenhum; em vez disso, ele apenas declara que precisa de um, e o próprio
-Spring se encarrega de fornecer essa dependência pronta. Isso é o que chamamos de inversão de controle.
-O ganho disso é enorme: as classes ficam desacopladas, e essa mesma característica é o que vai
-permitir, mais para frente, que a gente substitua o repositório real por um objeto simulado durante os
-testes.
-
-Agora vamos aos métodos do serviço, que são curtos e diretos:
-
-```java
-public Reserva salvar(Reserva reserva) {
-    return reservaRepository.save(reserva);
-}
-
-public List<Reserva> listarTodas() {
-    return reservaRepository.findAll();
-}
-
-public Optional<Reserva> buscarPorId(Long id) {
-    return reservaRepository.findById(id);
-}
-
-public void excluir(Long id) {
-    reservaRepository.deleteById(id);
-}
-```
-
-Olhem como cada método da camada de serviço corresponde a uma das funcionalidades que eu demonstrei lá
-no começo: `salvar` é o que executa quando clico em Salvar, `listarTodas` é o que monta a tabela,
-`buscarPorId` é o que carrega os dados na edição, e `excluir` é o botão vermelho. E vale comentar o uso
-de **coleções e de tipos genéricos** nas assinaturas. O método `listarTodas`, por exemplo, devolve uma
-`List<Reserva>`, ou seja, uma lista tipada de reservas. E o método `buscarPorId` devolve um
-`Optional<Reserva>`. Esse `Optional` é um detalhe que eu acho importante destacar, porque ele é a forma
-moderna do Java de representar algo que **pode ou não existir**. Em vez de devolver `null` e correr o
-risco do famoso `NullPointerException`, eu devolvo um `Optional`, que obriga quem recebe a tratar de
-forma explícita o caso em que a reserva não foi encontrada. É uma escolha que demonstra preocupação com
-robustez.
-
-Por fim, no topo, está o **controlador**, a classe `ReservaController`, anotada com `@Controller`.
-Essa é a camada que recebe as requisições do navegador e decide o que responder. Vou mostrar o começo
-da classe, com o construtor e as duas primeiras rotas:
-
-```java
-@Controller
-public class ReservaController {
-
-    private final ReservaService reservaService;
-
-    public ReservaController(ReservaService reservaService) {
-        this.reservaService = reservaService;
-    }
-
-    // Abre direto a tela principal (lista)
-    @GetMapping("/")
-    public String inicio() {
-        return "redirect:/reservas";
-    }
-
-    // Lista todas as reservas
-    @GetMapping("/reservas")
-    public String listarReservas(Model model) {
-        model.addAttribute("reservas", reservaService.listarTodas());
-        return "lista-reservas";
-    }
-```
-
-Reparem que ela também recebe o `ReservaService` por injeção de dependência no construtor, mantendo a
-mesma filosofia de baixo acoplamento. E aqui aparecem as anotações de mapeamento web. Aquele
-`@GetMapping("/")` é exatamente o que faz a aplicação, no Passo 1 da demonstração, redirecionar direto
-para a lista. E o `@GetMapping("/reservas")` é o que monta a tabela: ele chama o serviço, coloca as
-reservas no `Model` e devolve o nome da tela `lista-reservas`.
-
-Vou mostrar agora as rotas que tratam o cadastro:
-
-```java
-// Abre o formulario para cadastrar nova reserva
-@GetMapping("/reservas/nova")
-public String novaReserva(Model model) {
-    model.addAttribute("reserva", new Reserva());
-    return "formulario-reserva";
-}
-
-// Salva nova reserva ou edicao
-@PostMapping("/reservas/salvar")
-public String salvarReserva(@ModelAttribute Reserva reserva) {
-    reservaService.salvar(reserva);
-    return "redirect:/reservas";
-}
-```
-
-Aqui aparece a diferença entre os dois verbos HTTP: o `@GetMapping` responde às requisições de
-visualização, como abrir o formulário vazio, e o `@PostMapping` trata o envio do formulário. O
-`@ModelAttribute` é o que faz a mágica de pegar os campos que o usuário preencheu na tela e montar, de
-forma automática, um objeto `Reserva` já preenchido. Depois de salvar, repare no `return
-"redirect:/reservas"`: é literalmente isso que faz a tela voltar para a lista no Passo 3.
-
-E eu queria fechar essa parte mostrando o trecho que, para mim, resume bem a maturidade do código: o
-método de edição, junto com o de exclusão, que usam `@PathVariable`:
-
-```java
-// Carrega uma reserva existente no formulario
-@GetMapping("/reservas/editar/{id}")
-public String editarReserva(@PathVariable Long id, Model model) {
-    return reservaService.buscarPorId(id)
-            .map(reserva -> {
-                model.addAttribute("reserva", reserva);
-                return "formulario-reserva";
-            })
-            .orElse("redirect:/reservas");
-}
-
-// Exclui a reserva pela lista
-@GetMapping("/reservas/excluir/{id}")
-public String excluirReserva(@PathVariable Long id) {
-    reservaService.excluir(id);
-    return "redirect:/reservas";
-}
-```
-
-Repare no `@PathVariable Long id`: ele captura o número que vem na própria URL, como em
-`/reservas/editar/1`. E olhem o tratamento do método de edição: quando o usuário pede para editar, o
-controlador chama o serviço, que devolve aquele `Optional`. E aí, em vez de um monte de `if` para
-verificar nulo, eu uso programação funcional com `map` e `orElse`: se a reserva existe, eu a coloco no
-modelo e abro o formulário já preenchido — que foi o que vimos no Passo 4; se ela não existe, eu
-simplesmente redireciono de volta para a lista. Em poucas linhas, eu trato com elegância os dois
-caminhos possíveis.
+E no topo está o **controlador**, anotado com `@Controller`, que recebe as requisições do navegador e
+decide o que responder. Ele também recebe o `ReservaService` por injeção de dependência, mantendo o
+baixo acoplamento. Repare nas anotações de mapeamento web: o `@GetMapping("/")` é o que redireciona
+direto para a lista no Passo 1; o `@GetMapping` trata as requisições de visualização, e o `@PostMapping`
+trata o envio do formulário, com o `@ModelAttribute` montando sozinho o objeto `Reserva` a partir dos
+campos preenchidos. E o trecho que melhor resume a maturidade do código é o método de edição: o
+`@PathVariable Long id` captura o número da própria URL, como em `/reservas/editar/1`, e em vez de um
+monte de `if` para verificar nulo, eu uso `map` e `orElse` sobre o `Optional` — se a reserva existe,
+abro o formulário já preenchido; se não existe, redireciono de volta para a lista. Dois caminhos
+tratados com elegância em poucas linhas.
 
 ### O mapa completo de rotas
 
-Antes de seguir, eu queria parar um pouco e mostrar, de forma organizada, **todas as rotas** que esse
-controlador expõe, porque elas são a porta de entrada da aplicação inteira. São seis rotas, e cada uma
-responde a um tipo específico de requisição HTTP:
+Antes de seguir, vale ver de forma organizada **todas as rotas** que esse controlador expõe, porque
+elas são a porta de entrada da aplicação. São seis, cada uma respondendo a um tipo de requisição HTTP:
 
 | Verbo HTTP | Rota | Método Java | O que faz |
 | --- | --- | --- | --- |
@@ -345,36 +158,29 @@ responde a um tipo específico de requisição HTTP:
 | `GET` | `/reservas/editar/{id}` | `editarReserva()` | Abre o formulário já preenchido |
 | `GET` | `/reservas/excluir/{id}` | `excluirReserva()` | Remove a reserva e volta para a lista |
 
-Olhando essa tabela, dá para perceber uma decisão de projeto importante: eu uso o verbo `GET` para
-tudo que é **navegação e leitura** — abrir a lista, abrir um formulário, disparar uma exclusão a partir
-de um link — e reservo o verbo `POST` exclusivamente para o momento em que **dados são enviados** do
-formulário para o servidor, que é o salvar. Essa separação entre `GET` e `POST` é um dos fundamentos do
-protocolo HTTP, e o Spring deixa isso explícito justamente através das anotações `@GetMapping` e
-`@PostMapping`.
+A decisão de projeto fica clara nessa tabela: uso `GET` para tudo que é **navegação e leitura** e
+reservo o `POST` para o momento em que **dados são enviados** do formulário, que é o salvar. Essa
+separação entre `GET` e `POST` é um fundamento do HTTP, e o Spring a deixa explícita nas anotações
+`@GetMapping` e `@PostMapping`.
 
 ### O que acontece, por dentro, quando uma requisição chega
 
-Agora deixa eu detalhar o **caminho que uma requisição percorre**, porque é aqui que a coisa fica
-interessante. Imaginem que o usuário clicou em "Nova Reserva". O navegador dispara uma requisição
-`GET /reservas/nova` para o servidor. Quem recebe essa requisição primeiro não é o nosso código: é um
-componente interno do Spring chamado `DispatcherServlet`, que funciona como um porteiro central. Ele
-olha a URL e o verbo, consulta o mapeamento de rotas e descobre que `GET /reservas/nova` corresponde ao
-método `novaReserva` do nosso `ReservaController`. Só então ele entrega o controle para o nosso código.
+Deixa eu detalhar o **caminho que uma requisição percorre**. Imaginem que o usuário clicou em "Nova
+Reserva": o navegador dispara um `GET /reservas/nova`. Quem recebe primeiro não é o nosso código, e sim
+o `DispatcherServlet`, um porteiro central do Spring, que olha a URL e o verbo, consulta o mapeamento e
+descobre que aquela rota corresponde ao método `novaReserva`. Só então ele entrega o controle ao nosso
+controlador.
 
-O nosso método executa, coloca um objeto `Reserva` vazio dentro do `Model` — que é basicamente uma
-maleta de dados que viaja do controlador para a tela — e devolve uma `String`: `"formulario-reserva"`.
-E aqui acontece outra etapa que costuma passar despercebida: essa `String` **não é** o HTML final. Ela
-é apenas o **nome lógico** de uma tela. O Spring entrega esse nome a um componente chamado
-`ViewResolver`, que sabe que `"formulario-reserva"` corresponde ao arquivo
-`templates/formulario-reserva.html`. É o Thymeleaf que, então, pega esse template, junta com os dados
-da maleta `Model` e gera o HTML de verdade, que finalmente volta para o navegador.
+Nosso método coloca um `Reserva` vazio no `Model` — a maleta de dados que viaja até a tela — e devolve a
+`String` `"formulario-reserva"`. E aqui há uma etapa que costuma passar despercebida: essa `String`
+**não é** o HTML, é só o **nome lógico** da tela. O `ViewResolver` traduz esse nome para o arquivo
+`templates/formulario-reserva.html`, e é o Thymeleaf que junta o template com os dados do `Model` e gera
+o HTML que volta ao navegador.
 
-E tem um detalhe que eu acho elegante no fluxo de salvar. Reparem que, depois de gravar, eu não devolvo
-uma tela: eu devolvo `"redirect:/reservas"`. Isso é o que se chama de padrão **Post-Redirect-Get**. Em
-vez de responder o `POST` diretamente com uma página, eu mando o navegador fazer uma **nova requisição**
-`GET` para a lista. O ganho prático disso é que, se o usuário apertar F5 para atualizar a página depois
-de salvar, ele não corre o risco de reenviar o formulário e cadastrar a reserva duas vezes. É uma
-pequena decisão que evita um bug clássico de aplicações web.
+E tem um detalhe elegante no salvar: depois de gravar, eu não devolvo uma tela, devolvo
+`"redirect:/reservas"`. É o padrão **Post-Redirect-Get** — em vez de responder o `POST` com uma página,
+mando o navegador fazer um novo `GET` para a lista. Assim, se o usuário apertar F5, ele não reenvia o
+formulário nem cadastra a reserva em duplicidade. Uma pequena decisão que evita um bug clássico da web.
 
 ### O caminho até o banco de dados
 
@@ -395,40 +201,24 @@ nunca fala direto com o banco; ele sempre passa pelo service e pelo repository. 
 código organizado e testável.
 
 Mas falta uma peça: como é que a aplicação **sabe onde fica esse banco**? Essa configuração não está no
-código Java, e sim em um arquivo de propriedades, o `application.properties`. Vou mostrar os trechos que
-definem a conexão:
+código Java, e sim no arquivo `application.properties`.
 
-```properties
-# Configuração de conexão com o banco MySQL local
-spring.datasource.url=jdbc:mysql://localhost:3306/reservas_db
-spring.datasource.username=root
-spring.datasource.******   # senha definida no application.properties
-spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+> **[Abrir `application.properties`, em `src/main/resources/` — trecho 2.6 do `trecho.md`]**
 
-# Atualiza as tabelas automaticamente com base nas entidades
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
-```
+Reparem nas informações essenciais. A `spring.datasource.url` é o **endereço** do banco — protocolo
+`jdbc:mysql`, host `localhost`, porta `3306` e o nome `reservas_db` —, seguida do usuário e da senha; e
+o `driver-class-name` é a peça que ensina o Java a falar o dialeto do MySQL. Dois ajustes merecem
+destaque: o `ddl-auto=update`, que faz o Hibernate **criar e atualizar as tabelas sozinho** a partir das
+entidades — por isso eu nunca escrevi um `CREATE TABLE` na mão —, e o `show-sql=true`, que imprime no
+console o SQL gerado. E só para fechar: como o projeto também roda em Docker, o
+`application-docker.properties` muda apenas o host de `localhost` para `db`, o nome do serviço do MySQL
+no `docker-compose` — é o mesmo código Java, só com um endereço de banco diferente.
 
-Reparem nas três informações essenciais. A `spring.datasource.url` é o **endereço** do banco: o
-protocolo `jdbc:mysql`, o host `localhost`, a porta `3306` e o nome do banco `reservas_db`. Logo abaixo
-vêm o usuário e a senha. E o `driver-class-name` é a peça que ensina o Java a "conversar" o dialeto do
-MySQL. Há ainda dois ajustes que valem o comentário: o `ddl-auto=update`, que faz o Hibernate **criar e
-atualizar as tabelas sozinho** a partir das nossas entidades — é por isso que eu nunca precisei escrever
-um `CREATE TABLE` na mão; e o `show-sql=true`, que imprime no console o SQL gerado, o que é ótimo para
-estudar e enxergar exatamente o comando que sai daquela cadeia toda que eu acabei de descrever.
-
-E só para fechar essa ideia: como o projeto também roda em Docker, existe um segundo arquivo, o
-`application-docker.properties`, que muda apenas o host do banco de `localhost` para `db` — que é o nome
-do serviço do MySQL lá no `docker-compose`. É o mesmo código Java, apenas com um endereço de banco
-diferente, o que mostra na prática como a configuração fica separada da lógica da aplicação.
-
-Então, juntando tudo: a requisição entra pelo **controller**, que conversa com o **service**, que por
-sua vez conversa com o **repository**, que — por meio do JPA e do Hibernate, configurados pelo
-`application.properties` — persiste a **entity** no MySQL. É um fluxo limpo, em camadas, com
-responsabilidades separadas, encapsulamento, injeção de dependência, generics, coleções e mapeamento
-objeto-relacional. Todos esses conceitos que a gente estudou em Orientação a Objetos estão aplicados de
-forma concreta aqui.
+Então, juntando tudo: a requisição entra pelo **controller**, conversa com o **service**, que conversa
+com o **repository**, que — via JPA e Hibernate, configurados pelo `application.properties` — persiste a
+**entity** no MySQL. É um fluxo limpo, em camadas, com responsabilidades separadas, encapsulamento,
+injeção de dependência, generics, coleções e mapeamento objeto-relacional. Todos esses conceitos que
+estudamos em Orientação a Objetos estão aplicados de forma concreta aqui.
 
 ---
 
@@ -471,7 +261,9 @@ dependência que eu expliquei na parte de orientação a objetos mostra o seu va
 recebe o repositório de fora, eu consigo injetar um **mock**, um repositório falso, com as anotações
 `@Mock` e `@InjectMocks`. Com isso, eu testo a lógica do serviço de forma totalmente isolada do banco
 de dados, verificando, por exemplo, se ao salvar uma reserva o método correto do repositório é
-realmente chamado. [posso mostrar esse trecho no `trecho.md`]
+realmente chamado.
+
+> **[Abrir `ReservaServiceTest.java`, em `src/test/java/com/exemplo/reservas/service/` — trecho 3.1 do `trecho.md`]**
 
 A segunda camada são os **testes de integração web**, no arquivo `ReservaControllerWebTest`, que usam
 a anotação `@WebMvcTest` e o `MockMvc`. Esses testes simulam requisições HTTP de verdade contra o
@@ -480,16 +272,22 @@ certa é renderizada, se o formulário salva e redireciona, e — algo que eu ac
 edição de um `id` que não existe redireciona corretamente em vez de quebrar. Ou seja, a gente valida
 o caminho feliz e também o caminho de exceção.
 
+> **[Abrir `ReservaControllerWebTest.java`, em `src/test/java/com/exemplo/reservas/controller/` — trecho 3.2 do `trecho.md`]**
+
 A terceira camada são os **testes de persistência**, no arquivo `ReservaRepositoryTest`, com a
 anotação `@DataJpaTest`. Esse teste sobe um banco em memória, o **H2**, salva uma reserva de verdade
 e depois busca de volta para conferir se os dados foram gravados e recuperados corretamente. Isso nos
 dá confiança de que o mapeamento objeto-relacional está funcionando como esperado.
 
+> **[Abrir `ReservaRepositoryTest.java`, em `src/test/java/com/exemplo/reservas/repository/` — trecho 3.3 do `trecho.md`]**
+
 E, no topo, a quarta camada é o **teste End-to-End com Playwright**, no arquivo
 `reserva-fluxo-critico.spec.js`. Esse teste abre um navegador de verdade, acessa o sistema, clica em
 "Nova Reserva", preenche todos os campos, salva e confere se a reserva realmente apareceu na lista. É
 o teste que mais se aproxima da experiência real do usuário, validando o fluxo crítico de ponta a
-ponta. [neste momento, posso mostrar o teste E2E rodando, se houver tempo]
+ponta.
+
+> **[Abrir `reserva-fluxo-critico.spec.js`, em `e2e/playwright/tests/` — trecho 3.4 do `trecho.md`; se houver tempo, mostrar o teste E2E rodando]**
 
 **Fase 5 — Uso de IA nos Testes.** Nessa fase, a gente usou inteligência artificial como ferramenta
 de apoio, principalmente para sugerir massa de dados e cenários de exceção. Mas fizemos isso de forma
@@ -503,8 +301,9 @@ testes na mão, montamos uma esteira de **CI/CD** com o GitHub Actions, no arqui
 push ou pull request, o pipeline compila o projeto, roda toda a bateria de testes Java e depois sobe a
 aplicação para executar os testes End-to-End do Playwright. Ao final, ele ainda publica os relatórios
 de teste e o relatório de cobertura do **JaCoCo** como artefatos. Isso garante rastreabilidade e faz
-com que a qualidade seja verificada de forma automática e contínua. [posso apontar o trecho do
-pipeline no `trecho.md`]
+com que a qualidade seja verificada de forma automática e contínua.
+
+> **[Abrir `ci-qa.yml`, em `.github/workflows/` — trecho 3.5 do `trecho.md`]**
 
 **Fase 7 — Testes Não Funcionais.** Além de verificar se o sistema faz o que deveria, a gente também
 olhou para *como* ele se comporta. Nessa fase, planejamos uma validação inicial de desempenho, com

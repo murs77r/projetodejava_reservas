@@ -19,5 +19,6 @@ COPY --from=build /app/target/*.jar app.jar
 
 EXPOSE 8080
 
-# Inicia a aplicacao usando o perfil docker
-ENTRYPOINT ["java", "-jar", "app.jar", "--spring.profiles.active=docker"]
+# Converte MYSQL_URL no formato mysql://user:senha@host:porta/banco
+# para propriedades JDBC do Spring quando necessario.
+ENTRYPOINT ["sh", "-c", "if [ -n \"$MYSQL_URL\" ] && [ -z \"$SPRING_DATASOURCE_URL\" ]; then MYSQL_NO_SCHEME=${MYSQL_URL#mysql://}; MYSQL_CREDS=${MYSQL_NO_SCHEME%@*}; MYSQL_HOST_DB=${MYSQL_NO_SCHEME#*@}; MYSQL_USER=${MYSQL_CREDS%%:*}; MYSQL_PASS=${MYSQL_CREDS#*:}; MYSQL_HOST_PORT=${MYSQL_HOST_DB%%/*}; MYSQL_DB=${MYSQL_HOST_DB#*/}; export SPRING_DATASOURCE_URL=jdbc:mysql://${MYSQL_HOST_PORT}/${MYSQL_DB}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC; export SPRING_DATASOURCE_USERNAME=$MYSQL_USER; export SPRING_DATASOURCE_PASSWORD=$MYSQL_PASS; fi; exec java -jar app.jar --spring.profiles.active=docker"]

@@ -12,6 +12,20 @@ docker compose up --build
 
 Acesse: http://localhost:8080
 
+## Deploy externo / Railway
+
+O container da aplicação sobe com o profile `docker`.
+Para funcionar fora do `docker compose`, defina estas variáveis de ambiente no serviço da aplicação:
+
+```text
+SPRING_DATASOURCE_URL=jdbc:mysql://SEU_HOST:3306/SEU_BANCO?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+SPRING_DATASOURCE_USERNAME=SEU_USUARIO
+SPRING_DATASOURCE_PASSWORD=SUA_SENHA
+PORT=8080
+```
+
+Sem essas variáveis, o profile `docker` usa por padrão o host `db`, que só existe dentro da rede do Docker Compose.
+
 ## Qualidade e Testes (QA)
 
 ### Testes automatizados Java (unitario + integracao)

@@ -382,19 +382,33 @@ npm run test:e2e
 
 ---
 
-## Tópico 5: Apoio à revisão dos cenários de teste
+## Tópico 5: Uso de IA nos Testes
 
 ### Finalidade desta etapa
 
-Esta etapa serviu para ampliar a revisão dos cenários de teste, gerar massa de dados, pensar em exceções e conferir se os fluxos críticos estavam cobertos.
+Nesta etapa, a inteligência artificial foi usada como ferramenta de apoio para ampliar a revisão dos cenários de teste, gerar massa de dados, pensar em exceções e conferir se os fluxos críticos estavam cobertos.
 
-### Pontos de atenção usados na revisão
+### Prompts sugeridos para gerar massa de teste
 
-1. Toda sugestão de cenário precisa ser validada por quem conhece o sistema.
-2. Cenários repetidos devem ser removidos para manter a suíte objetiva.
-3. Regras que não existem no sistema não devem ser tratadas como obrigatórias.
-4. O foco deve permanecer nos fluxos de maior risco: cadastro, listagem, edição e exclusão.
-5. Casos inesperados, como editar uma reserva inexistente, ajudam a evitar quebra de tela.
+1. Gerar exemplos de reservas válidas com nome do cliente, data, quantidade de pessoas e status.
+2. Sugerir casos negativos para campos obrigatórios do formulário.
+3. Criar cenários de regressão para cadastro, listagem, edição e exclusão de reservas.
+4. Propor situações de exceção, como tentativa de edição de uma reserva inexistente.
+
+### Limitações da IA
+
+1. A IA pode sugerir regras que não existem no sistema.
+2. A IA pode repetir cenários parecidos com nomes diferentes.
+3. A IA pode ignorar detalhes do domínio se o contexto informado for incompleto.
+4. A IA não substitui a validação humana nem a análise do comportamento real da aplicação.
+
+### Onde a validação humana é indispensável
+
+1. Confirmar se o cenário sugerido faz sentido para o Sistema de Reservas.
+2. Remover casos redundantes ou fora do escopo.
+3. Garantir que os testes reflitam as regras realmente implementadas.
+4. Priorizar os fluxos de maior risco: cadastro, listagem, edição e exclusão.
+5. Revisar casos inesperados, como editar uma reserva inexistente, para evitar quebra de tela.
 
 ### Exemplo de cenário revisado e automatizado
 
@@ -412,7 +426,7 @@ void editarReservaComIdInexistente() throws Exception {
 
 ### Mensagem principal
 
-- A revisão dos cenários acelerou a identificação de casos positivos, negativos e de regressão.
+- A IA acelerou a identificação de casos positivos, negativos e de regressão.
 - A decisão final sobre o que testar continuou baseada no comportamento real do sistema.
 - O teste de ID inexistente mostra cuidado com situação inesperada e melhora a robustez da aplicação.
 
